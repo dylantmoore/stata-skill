@@ -35,6 +35,23 @@ list if age > 60
 list if age > 60 & !missing(age)
 ```
 
+### String Empty `""` Sorts *Before* Everything (Opposite of Numeric Missing)
+The `bysort id (X): replace X = X[1]` trick for propagating a value across a panel relies on numeric missing sorting last. **It silently fails for string variables** because `""` sorts *before* all non-empty strings — so `X[1]` grabs the empty value, not the real one.
+```stata
+* Propagate a NUMERIC value across panel — works correctly
+* (missing sorts to +inf, so non-missing value lands in [1])
+gen zip_2022 = zip_code if year == 2022
+bysort id (zip_2022): replace zip_2022 = zip_2022[1]      // OK
+
+* Propagate a STRING value across panel — SILENTLY BROKEN
+* ("" sorts before "N11", so [1] is always "")
+gen form_2022 = form_type if year == 2022
+bysort id (form_2022): replace form_2022 = form_2022[1]   // WRONG — fills with ""
+
+* RIGHT — use [_N] so non-empty string sorts last and is selected
+bysort id (form_2022): replace form_2022 = form_2022[_N]  // CORRECT
+```
+
 ### `=` vs `==`
 `=` is assignment; `==` is comparison. Mixing them up is a syntax error or silent bug.
 ```stata
